@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../app_theme.dart';
 import '../progress_store.dart';
@@ -6,6 +7,47 @@ import '../widgets/app_widgets.dart';
 
 class ChallengesScreen extends StatelessWidget {
   const ChallengesScreen({super.key});
+
+  void _buyStreakFreeze(BuildContext context) {
+    final progress = GameProgress.instance;
+    if (progress.hapticEnabled) HapticFeedback.mediumImpact();
+
+    if (progress.buyStreakFreeze(cost: 100)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('مبروك! تم شراء درع تجميد السلسلة ❄️ (+1)'),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('نقاط الخبرة غير كافية (تحتاج إلى 100 XP)'),
+        ),
+      );
+    }
+  }
+
+  void _buyHeartRefill(BuildContext context) {
+    final progress = GameProgress.instance;
+    if (progress.hapticEnabled) HapticFeedback.mediumImpact();
+
+    if (progress.hearts >= GameProgress.maxHearts) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('قلوبك ممتلئة بالكامل بالفعل! ❤️')),
+      );
+      return;
+    }
+
+    if (progress.buyHeartRefill(cost: 50)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تمت استعادة القلوب بالكامل! ❤️ (5/5)')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('نقاط الخبرة غير كافية (تحتاج إلى 50 XP)')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,9 +70,26 @@ class ChallengesScreen extends StatelessWidget {
         final weeklyClaimed = progress.isChallengeClaimed('weekly_lessons');
 
         return Scaffold(
-          appBar: AppBar(title: const Text('التحديات والمهام')),
+          appBar: AppBar(
+            title: const Text('التحديات والمتجر'),
+            actions: [
+              Padding(
+                padding: const EdgeInsetsDirectional.only(end: 16),
+                child: Row(
+                  children: [
+                    const Icon(Icons.bolt_rounded, color: AppColors.gold, size: 20),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${progress.xp} XP',
+                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
           body: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 10, 20, 32),
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 36),
             children: [
               Container(
                 padding: const EdgeInsets.all(18),
@@ -42,21 +101,25 @@ class ChallengesScreen extends StatelessWidget {
                 ),
                 child: const Row(
                   children: [
-                    Icon(Icons.flag_circle_rounded,
-                        color: AppColors.gold, size: 54),
+                    Icon(Icons.flag_circle_rounded, color: AppColors.gold, size: 52),
                     SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('اصنع عادة تعلّم يومية',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w900)),
+                          Text(
+                            'اصنع عادة تعلّم يومية',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
                           SizedBox(height: 4),
-                          Text('أنجز المهام واحصل على نقاط خبرة وقلوب إضافية',
-                              style: TextStyle(color: Colors.white70)),
+                          Text(
+                            'أنجز المهام واحصل على نقاط خبرة وقلوب إضافية لحماية سلسلتك.',
+                            style: TextStyle(color: Colors.white70, fontSize: 13),
+                          ),
                         ],
                       ),
                     ),
@@ -69,7 +132,7 @@ class ChallengesScreen extends StatelessWidget {
               _InteractiveChallengeTile(
                 icon: Icons.menu_book_rounded,
                 color: AppColors.primary,
-                title: 'أكمل درسًا واحدًا اليوم',
+                title: 'أكمل درساً واحداً اليوم',
                 progress: (progress.todayCompletedLessons / 1).clamp(0.0, 1.0),
                 progressText: '${progress.todayCompletedLessons}/1',
                 rewardText: '+20 XP',
@@ -77,7 +140,9 @@ class ChallengesScreen extends StatelessWidget {
                 isClaimed: daily1Claimed,
                 onClaim: () {
                   progress.claimChallenge('daily_lesson', xpReward: 20);
-                  EmptyActionSnack.show(context, 'مبارك! حصلت على 20 XP.');
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('مبارك! حصلت على 20 XP.')),
+                  );
                 },
               ),
               const SizedBox(height: 10),
@@ -92,97 +157,150 @@ class ChallengesScreen extends StatelessWidget {
                 isClaimed: daily2Claimed,
                 onClaim: () {
                   progress.claimChallenge('daily_correct', xpReward: 15);
-                  EmptyActionSnack.show(context, 'مبارك! حصلت على 15 XP.');
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('مبارك! حصلت على 15 XP.')),
+                  );
                 },
               ),
               const SizedBox(height: 10),
               _InteractiveChallengeTile(
                 icon: Icons.local_fire_department_rounded,
                 color: const Color(0xFFF28C28),
-                title: 'حافظ على سلسلة أيامك',
+                title: 'حافظ على شعلة الأيام مشتعلة',
                 progress: daily3Done ? 1.0 : 0.0,
-                progressText: daily3Done ? 'مكتمل' : '0/1',
-                rewardText: '+1 قلب',
+                progressText: daily3Done ? '1/1' : '0/1',
+                rewardText: '+10 XP',
                 isCompleted: daily3Done,
                 isClaimed: daily3Claimed,
                 onClaim: () {
-                  progress.claimChallenge('daily_streak', heartReward: 1);
-                  EmptyActionSnack.show(context, 'تمت استعادة قلب إضافي!');
+                  progress.claimChallenge('daily_streak', xpReward: 10);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('مبارك! حصلت على 10 XP.')),
+                  );
                 },
               ),
-              const SizedBox(height: 25),
-              const SectionHeading(title: 'تحدي الأسبوع'),
+              const SizedBox(height: 24),
+              const SectionHeading(title: 'التحدي الأسبوعي'),
               const SizedBox(height: 11),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(18),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const SoftIcon(
-                              icon: Icons.workspace_premium_rounded,
-                              color: AppColors.purple,
-                              backgroundColor: Color(0xFFEDE9FF)),
-                          const SizedBox(width: 13),
-                          const Expanded(
-                              child: Text('رحلة طالب العلم',
-                                  style: TextStyle(
-                                      color: AppColors.ink,
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w900))),
-                          if (weeklyClaimed)
-                            const Chip(
-                              backgroundColor: AppColors.primarySoft,
-                              label: Text('تم الاستلام',
-                                  style: TextStyle(
-                                      color: AppColors.primaryDark,
-                                      fontWeight: FontWeight.w800)),
-                            )
-                          else if (weeklyDone)
-                            FilledButton(
-                              onPressed: () {
-                                progress.claimChallenge('weekly_lessons',
-                                    xpReward: 120, freezeReward: 1);
-                                EmptyActionSnack.show(context,
-                                    'مبارك! حصلت على 120 XP وتجميد سلسلة مجاني.');
-                              },
-                              child: const Text('استلام 120 XP'),
-                            )
-                          else
-                            const Text('120 XP',
-                                style: TextStyle(
-                                    color: AppColors.purple,
-                                    fontWeight: FontWeight.w900)),
-                        ],
-                      ),
-                      const SizedBox(height: 15),
-                      const Text('أكمل 7 دروس خلال هذا الأسبوع لكسب مكافأة كبرى',
-                          style: TextStyle(color: AppColors.muted)),
-                      const SizedBox(height: 11),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: LinearProgressIndicator(
-                            value: weeklyLessons / 7,
-                            minHeight: 10,
-                            color: AppColors.purple,
-                            backgroundColor: const Color(0xFFEDE9FF)),
-                      ),
-                      const SizedBox(height: 7),
-                      Text('$weeklyLessons من 7 دروس',
-                          style: const TextStyle(
-                              color: AppColors.muted,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700)),
-                    ],
-                  ),
-                ),
+              _InteractiveChallengeTile(
+                icon: Icons.calendar_month_rounded,
+                color: AppColors.purple,
+                title: 'أكمل 7 دروس خلال هذا الأسبوع',
+                progress: (weeklyLessons / 7).clamp(0.0, 1.0),
+                progressText: '$weeklyLessons/7',
+                rewardText: '+50 XP · ❄️ تجميد',
+                isCompleted: weeklyDone,
+                isClaimed: weeklyClaimed,
+                onClaim: () {
+                  progress.claimChallenge('weekly_lessons', xpReward: 50, freezeReward: 1);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('إنجاز عظيم! حصلت على 50 XP وتجميد سلسلة.')),
+                  );
+                },
+              ),
+              const SizedBox(height: 28),
+              const SectionHeading(title: 'متجر نقاط الخبرة (XP Store)'),
+              const SizedBox(height: 12),
+              _StoreItemCard(
+                icon: Icons.ac_unit_rounded,
+                color: Colors.lightBlueAccent,
+                title: 'تجميد السلسلة (Streak Freeze)',
+                subtitle: 'يحمي سلسلتك ليوم كامل عند الانشغال أو السفر. لديك: ${progress.streakFreezes}',
+                price: 100,
+                userXp: progress.xp,
+                onBuy: () => _buyStreakFreeze(context),
+              ),
+              const SizedBox(height: 10),
+              _StoreItemCard(
+                icon: Icons.favorite_rounded,
+                color: AppColors.error,
+                title: 'شحن القلوب بالكامل (Heart Refill)',
+                subtitle: 'استعد القلوب الخمسة فوراً لتواصل التعلّم دون انتظار.',
+                price: 50,
+                userXp: progress.xp,
+                onBuy: () => _buyHeartRefill(context),
               ),
             ],
           ),
         );
       },
+    );
+  }
+}
+
+class _StoreItemCard extends StatelessWidget {
+  const _StoreItemCard({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.subtitle,
+    required this.price,
+    required this.userXp,
+    required this.onBuy,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String subtitle;
+  final int price;
+  final int userXp;
+  final VoidCallback onBuy;
+
+  @override
+  Widget build(BuildContext context) {
+    final canAfford = userXp >= price;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: .15),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(icon, color: color, size: 28),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14.5),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(color: AppColors.muted, fontSize: 12, height: 1.35),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            FilledButton(
+              onPressed: onBuy,
+              style: FilledButton.styleFrom(
+                backgroundColor: canAfford ? AppColors.primary : Colors.grey.shade400,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                minimumSize: const Size(80, 42),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.bolt_rounded, color: AppColors.gold, size: 16),
+                  Text('$price', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -214,59 +332,121 @@ class _InteractiveChallengeTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(15),
+        padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            SoftIcon(
-                icon: icon,
-                color: color,
-                backgroundColor: color.withValues(alpha: .11)),
-            const SizedBox(width: 13),
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: .15),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(icon, color: color, size: 26),
+            ),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: Theme.of(context).textTheme.titleMedium),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14.5,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        rewardText,
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 8),
-                  LinearProgressIndicator(
-                      value: progress,
-                      minHeight: 7,
-                      borderRadius: BorderRadius.circular(9),
-                      color: color,
-                      backgroundColor: color.withValues(alpha: .12)),
-                  const SizedBox(height: 5),
-                  Text(progressText,
-                      style: const TextStyle(
-                          color: AppColors.muted, fontSize: 11)),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: LinearProgressIndicator(
+                            value: progress,
+                            minHeight: 7,
+                            backgroundColor: AppColors.primarySoft,
+                            color: isCompleted ? AppColors.primary : color,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        progressText,
+                        style: const TextStyle(
+                          color: AppColors.muted,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
             if (isClaimed)
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 6),
-                child: Icon(Icons.check_circle_rounded, color: AppColors.primary, size: 28),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.green.withValues(alpha: .12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.check_rounded, color: Colors.green, size: 16),
+                    SizedBox(width: 4),
+                    Text(
+                      'مُكتمل',
+                      style: TextStyle(
+                        color: Colors.green,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 11.5,
+                      ),
+                    ),
+                  ],
+                ),
               )
             else if (isCompleted)
               FilledButton(
                 onPressed: onClaim,
                 style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  minimumSize: const Size(0, 38),
+                  backgroundColor: AppColors.gold,
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  minimumSize: const Size(64, 38),
                 ),
-                child: const Text('استلام', style: TextStyle(fontSize: 12)),
+                child: const Text('استلم 🎁', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900)),
               )
             else
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
                 decoration: BoxDecoration(
-                    color: AppColors.goldSoft,
-                    borderRadius: BorderRadius.circular(10)),
-                child: Text(rewardText,
-                    style: const TextStyle(
-                        color: Color(0xFF8D5F0C),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w900)),
+                  color: Colors.black.withValues(alpha: .05),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text(
+                  'قيد التقدم',
+                  style: TextStyle(color: AppColors.muted, fontSize: 11.5, fontWeight: FontWeight.w700),
+                ),
               ),
           ],
         ),

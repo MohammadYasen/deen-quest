@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
@@ -15,6 +16,7 @@ class LessonScreen extends StatefulWidget {
     this.lessonIndex,
     this.customQuestions,
     this.isMistakeReview = false,
+    this.isHeartRecovery = false,
   });
 
   final String title;
@@ -22,6 +24,7 @@ class LessonScreen extends StatefulWidget {
   final int? lessonIndex;
   final List<QuizQuestion>? customQuestions;
   final bool isMistakeReview;
+  final bool isHeartRecovery;
 
   @override
   State<LessonScreen> createState() => _LessonScreenState();
@@ -53,7 +56,13 @@ class _LessonScreenState extends State<LessonScreen> with SingleTickerProviderSt
 
     if (widget.customQuestions != null && widget.customQuestions!.isNotEmpty) {
       _questions = List.from(widget.customQuestions!);
-    } else if (widget.worldIndex != null && widget.lessonIndex != null) {
+    } else if (widget.isHeartRecovery) {
+        GameProgress.instance.refillHearts();
+        GameProgress.instance.finishPractice(
+          earnedXp: _xp + 15,
+          remainingHearts: 5,
+        );
+      } else if (widget.worldIndex != null && widget.lessonIndex != null) {
       _questions = CurriculumData.getQuestionsForLesson(
         worldIndex: widget.worldIndex!,
         lessonIndex: widget.lessonIndex!,
@@ -172,6 +181,13 @@ class _LessonScreenState extends State<LessonScreen> with SingleTickerProviderSt
     }
 
     final correct = _evaluate();
+    if (GameProgress.instance.hapticEnabled) {
+      if (correct) {
+        HapticFeedback.mediumImpact();
+      } else {
+        HapticFeedback.heavyImpact();
+      }
+    }
     setState(() {
       _lastCorrect = correct;
       _answered = true;

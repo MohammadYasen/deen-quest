@@ -2,6 +2,20 @@ import 'package:flutter/foundation.dart';
 import 'models/quiz_question.dart';
 import 'services/local_storage_service.dart';
 
+enum LeagueTier {
+  bronze('دوري النور البرونزي', '🥉', 0, 300),
+  silver('دوري النور الفضي', '🥈', 300, 700),
+  gold('دوري النور الذهبي', '🥇', 700, 1500),
+  emerald('دوري النور الزمردي', '💎', 1500, 3000),
+  diamond('دوري النور الماسي', '👑', 3000, 999999);
+
+  const LeagueTier(this.title, this.badge, this.minXp, this.maxXp);
+  final String title;
+  final String badge;
+  final int minXp;
+  final int maxXp;
+}
+
 class GameProgress extends ChangeNotifier {
   GameProgress._();
 
@@ -13,6 +27,14 @@ class GameProgress extends ChangeNotifier {
 
   bool _isLoaded = false;
   bool get isLoaded => _isLoaded;
+
+  LeagueTier get currentLeague {
+    if (_xp >= 3000) return LeagueTier.diamond;
+    if (_xp >= 1500) return LeagueTier.emerald;
+    if (_xp >= 700) return LeagueTier.gold;
+    if (_xp >= 300) return LeagueTier.silver;
+    return LeagueTier.bronze;
+  }
 
   int _completedSteps = 1;
   int get completedSteps => _completedSteps;
@@ -62,6 +84,8 @@ class GameProgress extends ChangeNotifier {
   Map<String, int> get lessonStars => Map.unmodifiable(_lessonStars);
 
   final Set<String> _claimedChallenges = {};
+  final Set<int> _claimedChests = {};
+  Set<int> get claimedChests => Set.unmodifiable(_claimedChests);
   Set<String> get claimedChallenges => Set.unmodifiable(_claimedChallenges);
 
   final Set<String> _unlockedAchievements = {'start_strong', 'diligent_student'};
@@ -136,6 +160,11 @@ class GameProgress extends ChangeNotifier {
 
     _completedLessonKeys.addAll(storage.getStringList('completed_lesson_keys'));
     _claimedChallenges.addAll(storage.getStringList('claimed_challenges'));
+    final loadedChests = storage.getStringList('claimed_chests');
+    for (final c in loadedChests) {
+      final parsed = int.tryParse(c);
+      if (parsed != null) _claimedChests.add(parsed);
+    }
     _unlockedAchievements.addAll(storage.getStringList('unlocked_achievements', defaultValue: ['start_strong', 'diligent_student']));
 
     final starsJson = storage.getJson('lesson_stars');
@@ -182,6 +211,7 @@ class GameProgress extends ChangeNotifier {
     }
     storage.setStringList('completed_lesson_keys', _completedLessonKeys.toList());
     storage.setStringList('claimed_challenges', _claimedChallenges.toList());
+    storage.setStringList('claimed_chests', _claimedChests.map((e) => e.toString()).toList());
     storage.setStringList('unlocked_achievements', _unlockedAchievements.toList());
     storage.saveJson('lesson_stars', _lessonStars);
     storage.saveJson('mistakes_review', _mistakesReview.map((q) => q.toJson()).toList());
@@ -391,6 +421,46 @@ class GameProgress extends ChangeNotifier {
     _hapticEnabled = value;
     _save();
     notifyListeners();
+  }
+
+    bool isChestClaimed(int worldIndex) => _claimedChests.contains(worldIndex);
+
+  bool canClaimChest(int worldIndex) {
+    if (isChestClaimed(worldIndex)) return false;
+    for (int i = 0; i < lessonsPerWorld; i++) {
+      if (!isLessonCompleted(worldIndex, i)) return false;
+    }
+    return true;
+  }
+
+  bool claimWorldChest(int worldIndex) {
+    if (!canClaimChest(worldIndex)) return false;
+    _claimedChests.add(worldIndex);
+    _xp += 75;
+    _hearts = (_hearts + 2).clamp(0, maxHearts);
+    _checkAchievements();
+    _save();
+    notifyListeners();
+    return true;
+  }
+
+  bool buyStreakFreeze({int cost = 100}) {
+    if (_xp < cost) return false;
+    _xp -= cost;
+    _streakFreezes++;
+    _save();
+    notifyListeners();
+    return true;
+  }
+
+  bool buyHeartRefill({int cost = 50}) {
+    if (_xp < cost || _hearts >= maxHearts) return false;
+    _xp -= cost;
+    _hearts = maxHearts;
+    _lastHeartRestoredAt = DateTime.now();
+    _save();
+    notifyListeners();
+    return true;
   }
 
   void setDailyGoal(int lessons) {
