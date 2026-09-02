@@ -35,8 +35,6 @@ void main() {
 
     await tester.tap(find.text('تخطي'));
     await tester.pumpAndSettle();
-    final allTexts = find.byType(Text).evaluate().map((e) => (e.widget as Text).data).toList();
-    print('DEBUG TEXTS ON SCREEN: $allTexts');
     expect(find.byKey(const Key('login-email')), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('guest-button')));
