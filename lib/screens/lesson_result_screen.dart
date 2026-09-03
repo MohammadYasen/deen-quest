@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../app_theme.dart';
+import '../services/auth_service.dart';
+import '../widgets/certificate_dialog.dart';
 import 'lesson_screen.dart';
 
 class LessonResultScreen extends StatefulWidget {
@@ -13,6 +15,8 @@ class LessonResultScreen extends StatefulWidget {
     required this.total,
     required this.xp,
     required this.hearts,
+    this.isMasteryTrial = false,
+    this.worldIndex,
   });
 
   final String title;
@@ -20,6 +24,8 @@ class LessonResultScreen extends StatefulWidget {
   final int total;
   final int xp;
   final int hearts;
+  final bool isMasteryTrial;
+  final int? worldIndex;
 
   @override
   State<LessonResultScreen> createState() => _LessonResultScreenState();
@@ -202,6 +208,33 @@ class _LessonResultScreenState extends State<LessonResultScreen>
                         ),
                       ),
                       const SizedBox(height: 22),
+                      if (widget.isMasteryTrial && accuracy >= 70) ...[
+                        FilledButton.icon(
+                          onPressed: () {
+                            final user = AuthService.instance.currentUser;
+                            final now = DateTime.now();
+                            final dateStr = '${now.year}/${now.month.toString().padLeft(2, '0')}/${now.day.toString().padLeft(2, '0')}';
+                            CertificateDialog.show(
+                              context,
+                              userName: user?.displayName ?? 'طالب النور المبارك',
+                              worldTitle: widget.title,
+                              worldSubtitle: 'إتقان الوحدة بنسبة $accuracy%',
+                              dateStr: dateStr,
+                            );
+                          },
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppColors.gold,
+                            foregroundColor: const Color(0xFF1E1500),
+                            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+                          ),
+                          icon: const Icon(Icons.workspace_premium_rounded, size: 22),
+                          label: const Text(
+                            'عرض واستلام شهادة الإتقان 📜✨',
+                            style: TextStyle(fontWeight: FontWeight.w900),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                      ],
                       FilledButton.icon(
                         onPressed: () => Navigator.pop(context),
                         icon: const Icon(Icons.route_rounded),

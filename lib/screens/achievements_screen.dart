@@ -50,6 +50,20 @@ class AchievementsScreen extends StatelessWidget {
       'أكمل درساً وأنت تمتلك قلباً واحداً',
       AppColors.error,
     ),
+    (
+      'world_conqueror',
+      Icons.workspace_premium_rounded,
+      'فاتح العوالم',
+      'اجتز تحدي ختم العالم الذهبي',
+      AppColors.gold,
+    ),
+    (
+      'speed_scholar',
+      Icons.timer_rounded,
+      'عالم السرعة',
+      'حقق 8 إجابات صحيحة في سباق النور السريع',
+      Color(0xFF26A69A),
+    ),
   ];
 
   @override

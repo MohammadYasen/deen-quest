@@ -135,4 +135,42 @@ void main() {
     progress.removeMistake(sampleQuestion);
     expect(progress.mistakesReview.any((q) => q.prompt == sampleQuestion.prompt), isFalse);
   });
+
+  testWidgets('world mastery unlocks and awards bonus XP', (tester) async {
+    final progress = GameProgress.instance;
+    final initialXp = progress.xp;
+
+    expect(progress.isWorldMastered(0), isFalse);
+    progress.completeWorldMastery(0, bonusXp: 150);
+
+    expect(progress.isWorldMastered(0), isTrue);
+    expect(progress.xp, equals(initialXp + 150));
+    expect(progress.unlockedAchievements.contains('world_conqueror'), isTrue);
+  });
+
+  testWidgets('shop purchases deduct XP and grant boosts', (tester) async {
+    final progress = GameProgress.instance;
+    progress.xp = 500;
+    final initialFreezes = progress.streakFreezes;
+
+    final boughtFreeze = progress.buyStreakFreeze(cost: 100);
+    expect(boughtFreeze, isTrue);
+    expect(progress.xp, equals(400));
+    expect(progress.streakFreezes, equals(initialFreezes + 1));
+
+    final boughtDoubleXp = progress.buyDoubleXp(cost: 120, durationMinutes: 30);
+    expect(boughtDoubleXp, isTrue);
+    expect(progress.xp, equals(280));
+    expect(progress.isDoubleXpActive, isTrue);
+  });
+
+  testWidgets('blitz mode updates high score and grants XP', (tester) async {
+    final progress = GameProgress.instance;
+    final initialXp = progress.xp;
+
+    progress.recordBlitzScore(12, earnedXp: 96);
+    expect(progress.blitzHighScore, equals(12));
+    expect(progress.xp, greaterThanOrEqualTo(initialXp + 96));
+    expect(progress.unlockedAchievements.contains('speed_scholar'), isTrue);
+  });
 }

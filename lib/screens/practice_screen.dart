@@ -4,10 +4,19 @@ import '../app_theme.dart';
 import '../data/curriculum_data.dart';
 import '../progress_store.dart';
 import '../widgets/app_widgets.dart';
+import 'blitz_quiz_screen.dart';
 import 'lesson_screen.dart';
 
 class PracticeScreen extends StatelessWidget {
   const PracticeScreen({super.key});
+
+  void _openBlitzMode(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const BlitzQuizScreen(),
+      ),
+    );
+  }
 
   void _openMistakesReview(BuildContext context) {
     final mistakes = GameProgress.instance.mistakesReview;
@@ -220,6 +229,82 @@ class PracticeScreen extends StatelessWidget {
                       ),
                     ],
                   ),
+                ),
+              ),
+
+              const SizedBox(height: 14),
+
+              // Blitz Mode Card
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      const Color(0xFF1E3A5F),
+                      AppColors.primary.withValues(alpha: 0.85),
+                    ],
+                    begin: Alignment.topRight,
+                    end: Alignment.bottomLeft,
+                  ),
+                  borderRadius: BorderRadius.circular(22),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.25),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 54,
+                      height: 54,
+                      decoration: BoxDecoration(
+                        color: AppColors.gold.withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.gold, width: 2),
+                      ),
+                      child: const Icon(Icons.timer_rounded, color: AppColors.gold, size: 30),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Row(
+                            children: [
+                              Text(
+                                'سباق النور السريع ⚡',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            progress.blitzHighScore > 0
+                                ? 'أعلى نتيجة لك: ${progress.blitzHighScore} إجابة في 60 ثانية!'
+                                : 'تحدَّ سرعتك وأجب على أكبر عدد في 60 ثانية!',
+                            style: const TextStyle(color: Colors.white70, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    FilledButton(
+                      onPressed: () => _openBlitzMode(context),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.gold,
+                        foregroundColor: const Color(0xFF1A1200),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      ),
+                      child: const Text('انطلق ⚡', style: TextStyle(fontWeight: FontWeight.w900)),
+                    ),
+                  ],
                 ),
               ),
 

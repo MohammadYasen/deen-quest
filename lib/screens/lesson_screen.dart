@@ -17,6 +17,7 @@ class LessonScreen extends StatefulWidget {
     this.customQuestions,
     this.isMistakeReview = false,
     this.isHeartRecovery = false,
+    this.isMasteryTrial = false,
   });
 
   final String title;
@@ -25,6 +26,7 @@ class LessonScreen extends StatefulWidget {
   final List<QuizQuestion>? customQuestions;
   final bool isMistakeReview;
   final bool isHeartRecovery;
+  final bool isMasteryTrial;
 
   @override
   State<LessonScreen> createState() => _LessonScreenState();
@@ -57,12 +59,10 @@ class _LessonScreenState extends State<LessonScreen> with SingleTickerProviderSt
     if (widget.customQuestions != null && widget.customQuestions!.isNotEmpty) {
       _questions = List.from(widget.customQuestions!);
     } else if (widget.isHeartRecovery) {
-        GameProgress.instance.refillHearts();
-        GameProgress.instance.finishPractice(
-          earnedXp: _xp + 15,
-          remainingHearts: 5,
-        );
-      } else if (widget.worldIndex != null && widget.lessonIndex != null) {
+      _questions = CurriculumData.allQuestions.take(3).toList();
+    } else if (widget.isMasteryTrial && widget.worldIndex != null) {
+      _questions = CurriculumData.getMasteryQuestionsForWorld(widget.worldIndex!);
+    } else if (widget.worldIndex != null && widget.lessonIndex != null) {
       _questions = CurriculumData.getQuestionsForLesson(
         worldIndex: widget.worldIndex!,
         lessonIndex: widget.lessonIndex!,
@@ -209,7 +209,25 @@ class _LessonScreenState extends State<LessonScreen> with SingleTickerProviderSt
       final accuracy = _questions.isEmpty ? 100 : ((_correctAnswers / _questions.length) * 100).round();
       final stars = accuracy >= 90 ? 3 : (accuracy >= 65 ? 2 : 1);
 
-      if (widget.worldIndex != null && widget.lessonIndex != null) {
+      if (widget.isHeartRecovery) {
+        GameProgress.instance.refillHearts();
+        GameProgress.instance.finishPractice(
+          earnedXp: _xp + 20,
+          remainingHearts: 5,
+        );
+      } else if (widget.isMasteryTrial && widget.worldIndex != null) {
+        if (accuracy >= 70) {
+          GameProgress.instance.completeWorldMastery(
+            widget.worldIndex!,
+            bonusXp: 150,
+          );
+        } else {
+          GameProgress.instance.finishPractice(
+            earnedXp: _xp,
+            remainingHearts: _hearts,
+          );
+        }
+      } else if (widget.worldIndex != null && widget.lessonIndex != null) {
         GameProgress.instance.finishLesson(
           worldIndex: widget.worldIndex!,
           lessonIndex: widget.lessonIndex!,
@@ -231,6 +249,8 @@ class _LessonScreenState extends State<LessonScreen> with SingleTickerProviderSt
             total: _questions.length,
             xp: _xp,
             hearts: _hearts,
+            isMasteryTrial: widget.isMasteryTrial,
+            worldIndex: widget.worldIndex,
           ),
         ),
       );
@@ -252,7 +272,16 @@ class _LessonScreenState extends State<LessonScreen> with SingleTickerProviderSt
           onPressed: () => Navigator.pop(context),
           icon: const Icon(Icons.close_rounded),
         ),
-        title: Text(widget.title),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (widget.isMasteryTrial) ...[
+              const Icon(Icons.workspace_premium_rounded, color: AppColors.gold, size: 22),
+              const SizedBox(width: 8),
+            ],
+            Flexible(child: Text(widget.title, overflow: TextOverflow.ellipsis)),
+          ],
+        ),
         actions: [
           Padding(
             padding: const EdgeInsetsDirectional.only(end: 16),
@@ -804,6 +833,35 @@ class _FeedbackPanel extends StatelessWidget {
                     fontSize: 11.5,
                     fontWeight: FontWeight.w700),
               ),
+              if (!correct) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.gold.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
+                  ),
+                  child: const Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.lightbulb_rounded, color: AppColors.gold, size: 18),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'إضاءة نبراس: لا تقلق، الخطأ خطوة نافعة لرسوخ العلم! اقرأ التفسير بتمعن وثبّت المعلومة لترسخ في قلبك.',
+                          style: TextStyle(
+                            color: Color(0xFFD48B00),
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
         ),

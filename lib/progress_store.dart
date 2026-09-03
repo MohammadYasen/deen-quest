@@ -94,6 +94,16 @@ class GameProgress extends ChangeNotifier {
   final List<QuizQuestion> _mistakesReview = [];
   List<QuizQuestion> get mistakesReview => List.unmodifiable(_mistakesReview);
 
+  final Set<int> _masteredWorlds = {};
+  Set<int> get masteredWorlds => Set.unmodifiable(_masteredWorlds);
+
+  DateTime? _doubleXpUntil;
+  bool get isDoubleXpActive =>
+      _doubleXpUntil != null && DateTime.now().isBefore(_doubleXpUntil!);
+
+  int _blitzHighScore = 0;
+  int get blitzHighScore => _blitzHighScore;
+
   // Settings
   bool _notificationsEnabled = true;
   bool get notificationsEnabled => _notificationsEnabled;
@@ -165,6 +175,16 @@ class GameProgress extends ChangeNotifier {
       final parsed = int.tryParse(c);
       if (parsed != null) _claimedChests.add(parsed);
     }
+    final loadedMastered = storage.getStringList('mastered_worlds');
+    for (final w in loadedMastered) {
+      final parsed = int.tryParse(w);
+      if (parsed != null) _masteredWorlds.add(parsed);
+    }
+    _blitzHighScore = storage.getInt('blitz_high_score', defaultValue: 0);
+    final doubleXpRaw = storage.getString('double_xp_until');
+    if (doubleXpRaw.isNotEmpty) {
+      _doubleXpUntil = DateTime.tryParse(doubleXpRaw);
+    }
     _unlockedAchievements.addAll(storage.getStringList('unlocked_achievements', defaultValue: ['start_strong', 'diligent_student']));
 
     final starsJson = storage.getJson('lesson_stars');
@@ -212,6 +232,11 @@ class GameProgress extends ChangeNotifier {
     storage.setStringList('completed_lesson_keys', _completedLessonKeys.toList());
     storage.setStringList('claimed_challenges', _claimedChallenges.toList());
     storage.setStringList('claimed_chests', _claimedChests.map((e) => e.toString()).toList());
+    storage.setStringList('mastered_worlds', _masteredWorlds.map((e) => e.toString()).toList());
+    storage.setInt('blitz_high_score', _blitzHighScore);
+    if (_doubleXpUntil != null) {
+      storage.setString('double_xp_until', _doubleXpUntil!.toIso8601String());
+    }
     storage.setStringList('unlocked_achievements', _unlockedAchievements.toList());
     storage.saveJson('lesson_stars', _lessonStars);
     storage.saveJson('mistakes_review', _mistakesReview.map((q) => q.toJson()).toList());
@@ -317,7 +342,8 @@ class GameProgress extends ChangeNotifier {
       _lessonStars[lessonKey] = stars;
     }
 
-    _xp += alreadyDone ? (earnedXp ~/ 2) : earnedXp;
+    final actualEarned = isDoubleXpActive ? earnedXp * 2 : earnedXp;
+    _xp += alreadyDone ? (actualEarned ~/ 2) : actualEarned;
     _hearts = remainingHearts.clamp(0, maxHearts);
     if (_hearts < maxHearts && _lastHeartRestoredAt == null) {
       _lastHeartRestoredAt = DateTime.now();
@@ -334,7 +360,8 @@ class GameProgress extends ChangeNotifier {
     required int earnedXp,
     required int remainingHearts,
   }) {
-    _xp += earnedXp;
+    final actualEarned = isDoubleXpActive ? earnedXp * 2 : earnedXp;
+    _xp += actualEarned;
     _hearts = remainingHearts.clamp(0, maxHearts);
     _save();
     notifyListeners();
@@ -389,6 +416,9 @@ class GameProgress extends ChangeNotifier {
     if (_xp >= 500) {
       _unlockedAchievements.add('point_collector');
     }
+    if (_masteredWorlds.isNotEmpty) {
+      _unlockedAchievements.add('world_conqueror');
+    }
   }
 
   // Settings Setters
@@ -442,6 +472,50 @@ class GameProgress extends ChangeNotifier {
     _save();
     notifyListeners();
     return true;
+  }
+
+  bool isWorldMastered(int worldIndex) => _masteredWorlds.contains(worldIndex);
+
+  bool canAttemptWorldMastery(int worldIndex) {
+    for (int i = 0; i < lessonsPerWorld; i++) {
+      if (!isLessonCompleted(worldIndex, i)) return false;
+    }
+    return true;
+  }
+
+  void completeWorldMastery(int worldIndex, {int bonusXp = 150}) {
+    _masteredWorlds.add(worldIndex);
+    final actualBonus = isDoubleXpActive ? bonusXp * 2 : bonusXp;
+    _xp += actualBonus;
+    _unlockedAchievements.add('world_conqueror');
+    _checkAchievements();
+    _save();
+    notifyListeners();
+  }
+
+  bool buyDoubleXp({int cost = 120, int durationMinutes = 30}) {
+    if (_xp < cost) return false;
+    _xp -= cost;
+    final now = DateTime.now();
+    final base = isDoubleXpActive ? _doubleXpUntil! : now;
+    _doubleXpUntil = base.add(Duration(minutes: durationMinutes));
+    _save();
+    notifyListeners();
+    return true;
+  }
+
+  void recordBlitzScore(int score, {int earnedXp = 0}) {
+    if (score > _blitzHighScore) {
+      _blitzHighScore = score;
+    }
+    final actualXp = isDoubleXpActive ? earnedXp * 2 : earnedXp;
+    _xp += actualXp;
+    if (_blitzHighScore >= 8) {
+      _unlockedAchievements.add('speed_scholar');
+    }
+    _checkAchievements();
+    _save();
+    notifyListeners();
   }
 
   bool buyStreakFreeze({int cost = 100}) {

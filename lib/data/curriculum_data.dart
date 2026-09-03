@@ -350,6 +350,58 @@ abstract final class CurriculumData {
       reviewerName: 'هيئة التدقيق العلمي',
       reviewDate: '2026-09-01',
     ),
+    QuizQuestion(
+      id: 'hist_2',
+      type: QuestionType.multipleChoice,
+      prompt: 'من هو أول مؤذن في الإسلام وصاحب الصوت الندي الذي اختاره النبي ﷺ؟',
+      options: ['بلال بن رباح', 'عبد الله بن أم مكتوم', 'أبو محذورة', 'سلمان الفارسي'],
+      correctIndex: 0,
+      explanation: 'بلال بن رباح الحبشي رضي الله عنه كان مؤذن رسول الله ﷺ لنداوة صوته وثباته العظيم في التوحيد.',
+      source: 'صحيح البخاري، كتاب الأذان؛ والبداية والنهاية لابن كثير',
+      difficulty: DifficultyLevel.beginner,
+      status: ContentStatus.approved,
+      reviewerName: 'هيئة التدقيق العلمي',
+      reviewDate: '2026-09-01',
+    ),
+    QuizQuestion(
+      id: 'qur_3',
+      type: QuestionType.multipleChoice,
+      prompt: 'كم عدد سور القرآن الكريم؟',
+      options: ['114 سورة', '110 سور', '120 سورة', '100 سورة'],
+      correctIndex: 0,
+      explanation: 'يتألف كتاب الله عز وجل من 114 سورة تبدأ بسورة الفاتحة وتختم بسورة الناس.',
+      source: 'الإتقان في علوم القرآن للإمام السيوطي',
+      difficulty: DifficultyLevel.beginner,
+      status: ContentStatus.approved,
+      reviewerName: 'هيئة التدقيق العلمي',
+      reviewDate: '2026-09-01',
+    ),
+    QuizQuestion(
+      id: 'eth_3',
+      type: QuestionType.multipleChoice,
+      prompt: 'ما هي أعظم وصية في حق الوالدين بعد عبادة الله وتوحيده في القرآن الكريم؟',
+      options: ['الإحسان إليهما وخفض جناح الذل لهما', 'عدم التحدث معهما', 'تركهما دون رعاية', 'الجدال معهما'],
+      correctIndex: 0,
+      explanation: 'قرن الله تعالى بر الوالدين والإحسان إليهما بعبادته في مواضع متعددة من كتابه العزيز.',
+      source: 'سورة الإسراء، الآيتان 23-24',
+      difficulty: DifficultyLevel.beginner,
+      status: ContentStatus.approved,
+      reviewerName: 'هيئة التدقيق العلمي',
+      reviewDate: '2026-09-01',
+    ),
+    QuizQuestion(
+      id: 'occ_3',
+      type: QuestionType.trueFalse,
+      prompt: 'صيام يوم عرفة لغير الحاج يُكفّر ذنوب سنتين: سنة ماضية وسنة مقبلة.',
+      options: ['صحيح', 'خطأ'],
+      correctIndex: 0,
+      explanation: 'ثبت عن النبي ﷺ أنه قال: صيام يوم عرفة أحتسب على الله أن يكفر السنة التي قبله والسنة التي بعده.',
+      source: 'صحيح مسلم، حديث رقم 1162',
+      difficulty: DifficultyLevel.beginner,
+      status: ContentStatus.approved,
+      reviewerName: 'هيئة التدقيق العلمي',
+      reviewDate: '2026-09-01',
+    ),
   ];
 
   static List<QuizQuestion> getQuestionsForLesson({int worldIndex = 0, int lessonIndex = 0}) {
@@ -367,6 +419,12 @@ abstract final class CurriculumData {
       default:
         return allQuestions.take(6).toList();
     }
+  }
+
+  static List<QuizQuestion> getMasteryQuestionsForWorld(int worldIndex) {
+    final list = getQuestionsForLesson(worldIndex: worldIndex, lessonIndex: 0);
+    if (list.length >= 6) return list;
+    return allQuestions.take(8).toList();
   }
 
   static List<QuizQuestion> getQuestionsForTopic(String topicId) {
